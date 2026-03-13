@@ -13,6 +13,8 @@ from shapely.geometry import Polygon
 from shapely.validation import explain_validity
 import simplekml
 
+import os
+
 
 app = Flask(__name__)
 
@@ -542,4 +544,5 @@ def sanitize_filename(value: str) -> str:
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
