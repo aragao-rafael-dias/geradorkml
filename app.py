@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import io
-import math
+import os
 import re
 from dataclasses import dataclass
 from datetime import datetime
@@ -13,13 +12,9 @@ from shapely.geometry import Polygon
 from shapely.validation import explain_validity
 import simplekml
 
-import os
-
 
 app = Flask(__name__)
 
-# SIRGAS 2000 / UTM zone 24S -> WGS84
-# Se depois vocês confirmarem outro EPSG, basta trocar aqui.
 UTM24S_EPSG = "EPSG:31984"
 WGS84_EPSG = "EPSG:4326"
 
@@ -84,7 +79,7 @@ HTML = """
       background: #fff;
     }
     textarea {
-      min-height: 280px;
+      min-height: 320px;
       resize: vertical;
       font-family: Consolas, Monaco, monospace;
       line-height: 1.45;
@@ -174,8 +169,21 @@ HTML = """
       font-size: 12px;
       color: var(--muted);
     }
+    .lot-box {
+      margin-top: 16px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #f8fafc;
+    }
+    .lot-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 10px;
+    }
     @media (max-width: 900px) {
-      .grid, .row, .meta {
+      .grid, .row, .meta, .lot-grid {
         grid-template-columns: 1fr;
       }
     }
@@ -217,11 +225,37 @@ HTML = """
           <textarea id="pontos" name="pontos" placeholder="Ex.:
 Ponto 1: 645389.0887626424, 8792436.71632438
 Ponto 2: 645392.5047325547, 8792433.707940618
-Ponto 3: 645395.2611085888, 8792436.664829656">{{ pontos }}</textarea>
+Ponto 3: 645395.2611085888, 8792436.664829656
+
+Ponto 1: 645400.0887626424, 8792440.71632438
+Ponto 2: 645403.5047325547, 8792438.707940618
+Ponto 3: 645406.2611085888, 8792441.664829656">{{ pontos }}</textarea>
 
           <div class="footer-note">
-            Aceita linhas no formato <strong>X, Y</strong> ou <strong>Ponto N: X, Y</strong>.
+            Aceita múltiplos polígonos. Um novo polígono começa quando aparece outro <strong>Ponto 1:</strong>
           </div>
+
+          {% if polygon_info_list %}
+            <div class="lot-box">
+              <strong>Identificação dos polígonos</strong>
+              <div class="muted">Informe o número do lote para cada polígono detectado.</div>
+
+              <div class="lot-grid">
+                {% for polygon_info in polygon_info_list %}
+                  <div>
+                    <label for="lote_{{ polygon_info.index }}">Polígono {{ polygon_info.index }}</label>
+                    <input
+                      type="text"
+                      id="lote_{{ polygon_info.index }}"
+                      name="lote_{{ polygon_info.index }}"
+                      value="{{ lotes_map.get(polygon_info.index, '') }}"
+                      placeholder="Ex.: Lote 59"
+                    >
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
 
           <div class="actions">
             <button class="primary" type="submit" name="action" value="preview">Validar e visualizar</button>
@@ -229,23 +263,33 @@ Ponto 3: 645395.2611085888, 8792436.664829656">{{ pontos }}</textarea>
           </div>
         </form>
 
-        {% if polygon_info %}
-          <div class="meta">
-            <div><strong>Vértices:</strong><br>{{ polygon_info.vertex_count }}</div>
-            <div><strong>Fechado automaticamente:</strong><br>{{ "Sim" if polygon_info.closed_automatically else "Não" }}</div>
-            <div><strong>Área:</strong><br>{{ polygon_info.area_m2 }} m²</div>
-            <div><strong>Perímetro:</strong><br>{{ polygon_info.perimeter_m }} m</div>
-            <div><strong>Válido:</strong><br>{{ "Sim" if polygon_info.is_valid else "Não" }}</div>
-            <div><strong>Detalhe:</strong><br>{{ polygon_info.validity_message }}</div>
-          </div>
+        {% if polygon_info_list %}
+          {% for polygon_info in polygon_info_list %}
+            <div class="meta" style="margin-bottom: 12px;">
+              <div><strong>Polígono:</strong><br>{{ polygon_info.index }}</div>
+              <div><strong>Vértices:</strong><br>{{ polygon_info.vertex_count }}</div>
+              <div><strong>Fechado automaticamente:</strong><br>{{ "Sim" if polygon_info.closed_automatically else "Não" }}</div>
+              <div><strong>Área:</strong><br>{{ polygon_info.area_m2 }} m²</div>
+              <div><strong>Perímetro:</strong><br>{{ polygon_info.perimeter_m }} m</div>
+              <div><strong>Válido:</strong><br>{{ "Sim" if polygon_info.is_valid else "Não" }}</div>
+              <div style="grid-column: 1 / -1;"><strong>Detalhe:</strong><br>{{ polygon_info.validity_message }}</div>
+            </div>
+          {% endfor %}
 
+          <div class="pill">{{ polygon_info_list|length }} polígono(s) detectado(s)</div>
           <div class="pill">UTM 24S → WGS84 na exportação KML</div>
 
-          {% if polygon_info.is_valid %}
+          {% set all_valid = polygon_info_list | selectattr('is_valid') | list | length == polygon_info_list | length %}
+          {% if all_valid %}
             <form method="post" action="/download-kml">
               <input type="hidden" name="protocolo" value="{{ protocolo }}">
               <input type="hidden" name="tipo" value="{{ tipo }}">
               <input type="hidden" name="pontos" value="{{ pontos }}">
+
+              {% for polygon_info in polygon_info_list %}
+                <input type="hidden" name="lote_{{ polygon_info.index }}" value="{{ lotes_map.get(polygon_info.index, '') }}">
+              {% endfor %}
+
               <div class="actions">
                 <button class="primary" type="submit">Gerar KML</button>
               </div>
@@ -256,7 +300,7 @@ Ponto 3: 645395.2611085888, 8792436.664829656">{{ pontos }}</textarea>
 
       <div class="card">
         <h3 style="margin-top: 0;">Visualizador 2D</h3>
-        <div class="muted">Prévia leve do polígono, sem ortofoto.</div>
+        <div class="muted">Prévia leve dos polígonos, sem ortofoto.</div>
         <div class="preview-box">
           {% if preview_svg %}
             {{ preview_svg|safe }}
@@ -274,6 +318,7 @@ Ponto 3: 645395.2611085888, 8792436.664829656">{{ pontos }}</textarea>
 
 @dataclass
 class PolygonInfo:
+    index: int
     vertex_count: int
     closed_automatically: bool
     area_m2: str
@@ -282,36 +327,67 @@ class PolygonInfo:
     validity_message: str
 
 
-def parse_points(raw_text: str) -> List[Tuple[float, float]]:
-    """
-    Aceita:
-    - '645389.08, 8792436.71'
-    - 'Ponto 1: 645389.08, 8792436.71'
-    - espaços extras
-    """
-    points: List[Tuple[float, float]] = []
+def parse_multiple_polygons(raw_text: str) -> List[List[Tuple[float, float]]]:
+    polygons: List[List[Tuple[float, float]]] = []
+    current_polygon: List[Tuple[float, float]] = []
 
     for line in raw_text.splitlines():
         line = line.strip()
         if not line:
             continue
 
-        numbers = re.findall(r"[-+]?\d+(?:\.\d+)?", line)
-        if len(numbers) < 2:
+        ponto_match = re.match(r"(?i)^ponto\s+(\d+)\s*:\s*(.*)$", line)
+        if ponto_match:
+            point_number = int(ponto_match.group(1))
+            remainder = ponto_match.group(2)
+
+            numbers = re.findall(r"[-+]?\d+(?:\.\d+)?", remainder)
+            if len(numbers) < 2:
+                continue
+
+            x = float(numbers[-2])
+            y = float(numbers[-1])
+
+            if point_number == 1 and current_polygon:
+                polygons.append(current_polygon)
+                current_polygon = []
+
+            current_polygon.append((x, y))
             continue
 
-        x = float(numbers[-2])
-        y = float(numbers[-1])
-        points.append((x, y))
+        numbers = re.findall(r"[-+]?\d+(?:\.\d+)?", line)
+        if len(numbers) >= 2:
+            x = float(numbers[-2])
+            y = float(numbers[-1])
+            current_polygon.append((x, y))
 
-    return points
+    if current_polygon:
+        polygons.append(current_polygon)
+
+    return polygons
 
 
-def points_to_text(points: List[Tuple[float, float]]) -> str:
-    lines = []
-    for idx, (x, y) in enumerate(points, start=1):
-        lines.append(f"Ponto {idx}: {x}, {y}")
-    return "\n".join(lines)
+def multiple_polygons_to_text(polygons: List[List[Tuple[float, float]]]) -> str:
+    blocks = []
+
+    for polygon in polygons:
+        lines = []
+        for idx, (x, y) in enumerate(polygon, start=1):
+            lines.append(f"Ponto {idx}: {x}, {y}")
+        blocks.append("\n".join(lines))
+
+    return "\n\n".join(blocks)
+
+
+def extract_lotes_from_form(form, polygon_count: int) -> dict[int, str]:
+    lotes_map: dict[int, str] = {}
+
+    for idx in range(1, polygon_count + 1):
+        value = form.get(f"lote_{idx}", "").strip()
+        if value:
+            lotes_map[idx] = value
+
+    return lotes_map
 
 
 def ensure_closed(points: List[Tuple[float, float]]) -> Tuple[List[Tuple[float, float]], bool]:
@@ -332,11 +408,12 @@ def format_number(value: float) -> str:
     return f"{value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
-def make_polygon_info(polygon: Polygon, original_points: List[Tuple[float, float]], closed_automatically: bool) -> PolygonInfo:
+def make_polygon_info(index: int, polygon: Polygon, original_points: List[Tuple[float, float]], closed_automatically: bool) -> PolygonInfo:
     is_valid = polygon.is_valid
     validity_message = "Geometria válida" if is_valid else explain_validity(polygon)
 
     return PolygonInfo(
+        index=index,
         vertex_count=len(original_points),
         closed_automatically=closed_automatically,
         area_m2=format_number(polygon.area),
@@ -346,12 +423,19 @@ def make_polygon_info(polygon: Polygon, original_points: List[Tuple[float, float
     )
 
 
-def polygon_to_svg(points: List[Tuple[float, float]], width: int = 520, height: int = 520) -> str:
-    if len(points) < 3:
-        return '<div class="muted">Pontos insuficientes para desenhar um polígono.</div>'
+def polygons_to_svg(
+    polygons: List[List[Tuple[float, float]]],
+    lotes_map: dict[int, str],
+    width: int = 520,
+    height: int = 520,
+) -> str:
+    all_points = [pt for polygon in polygons for pt in polygon]
 
-    xs = [p[0] for p in points]
-    ys = [p[1] for p in points]
+    if len(all_points) < 3:
+        return '<div class="muted">Pontos insuficientes para desenhar os polígonos.</div>'
+
+    xs = [p[0] for p in all_points]
+    ys = [p[1] for p in all_points]
 
     min_x, max_x = min(xs), max(xs)
     min_y, max_y = min(ys), max(ys)
@@ -370,23 +454,6 @@ def polygon_to_svg(points: List[Tuple[float, float]], width: int = 520, height: 
         py = height - padding - (y - min_y) * scale
         return px, py
 
-    svg_points = [project(p) for p in points]
-    if svg_points[0] != svg_points[-1]:
-        svg_points.append(svg_points[0])
-
-    polyline_str = " ".join(f"{x:.2f},{y:.2f}" for x, y in svg_points)
-
-    vertex_circles = []
-    labels = []
-
-    for idx, (x, y) in enumerate(svg_points[:-1], start=1):
-        vertex_circles.append(
-            f'<circle cx="{x:.2f}" cy="{y:.2f}" r="5" fill="#dc2626" stroke="#ffffff" stroke-width="2" />'
-        )
-        labels.append(
-            f'<text x="{x + 8:.2f}" y="{y - 8:.2f}" font-size="14" fill="#111827" font-weight="700">{idx}</text>'
-        )
-
     bbox = (
         f'<rect x="1" y="1" width="{width-2}" height="{height-2}" '
         f'fill="white" stroke="#d1d5db" stroke-width="1" rx="10" />'
@@ -396,16 +463,57 @@ def polygon_to_svg(points: List[Tuple[float, float]], width: int = 520, height: 
     for i in range(1, 5):
         gx = padding + i * (width - 2 * padding) / 5
         gy = padding + i * (height - 2 * padding) / 5
-        grid_lines.append(f'<line x1="{gx:.2f}" y1="{padding}" x2="{gx:.2f}" y2="{height-padding}" stroke="#eef2f7" stroke-width="1"/>')
-        grid_lines.append(f'<line x1="{padding}" y1="{gy:.2f}" x2="{width-padding}" y2="{gy:.2f}" stroke="#eef2f7" stroke-width="1"/>')
+        grid_lines.append(
+            f'<line x1="{gx:.2f}" y1="{padding}" x2="{gx:.2f}" y2="{height-padding}" stroke="#eef2f7" stroke-width="1"/>'
+        )
+        grid_lines.append(
+            f'<line x1="{padding}" y1="{gy:.2f}" x2="{width-padding}" y2="{gy:.2f}" stroke="#eef2f7" stroke-width="1"/>'
+        )
+
+    palette = [
+        ("#1d4ed8", "#93c5fd88"),
+        ("#059669", "#86efac88"),
+        ("#dc2626", "#fca5a588"),
+        ("#7c3aed", "#c4b5fd88"),
+        ("#ea580c", "#fdba7488"),
+    ]
+
+    svg_parts = [bbox, "".join(grid_lines)]
+
+    for poly_idx, polygon in enumerate(polygons, start=1):
+        svg_points = [project(p) for p in polygon]
+        if svg_points[0] != svg_points[-1]:
+            svg_points.append(svg_points[0])
+
+        stroke, fill = palette[(poly_idx - 1) % len(palette)]
+        polyline_str = " ".join(f"{x:.2f},{y:.2f}" for x, y in svg_points)
+
+        svg_parts.append(
+            f'<polygon points="{polyline_str}" fill="{fill}" stroke="{stroke}" stroke-width="3" />'
+        )
+
+        for idx, (x, y) in enumerate(svg_points[:-1], start=1):
+            svg_parts.append(
+                f'<circle cx="{x:.2f}" cy="{y:.2f}" r="5" fill="#111827" stroke="#ffffff" stroke-width="2" />'
+            )
+            svg_parts.append(
+                f'<text x="{x + 8:.2f}" y="{y - 8:.2f}" font-size="14" fill="#111827" font-weight="700">{poly_idx}.{idx}</text>'
+            )
+
+        # Rótulo do lote no centro aproximado do polígono
+        poly_geom, _ = build_polygon(polygon)
+        centroid = poly_geom.centroid
+        cx, cy = project((centroid.x, centroid.y))
+        lote_nome = lotes_map.get(poly_idx, f"Polígono {poly_idx}")
+
+        svg_parts.append(
+            f'<text x="{cx:.2f}" y="{cy:.2f}" text-anchor="middle" dominant-baseline="middle" '
+            f'font-size="16" fill="#111827" font-weight="700">{lote_nome}</text>'
+        )
 
     svg = f"""
-    <svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Prévia do polígono">
-      {bbox}
-      {''.join(grid_lines)}
-      <polygon points="{polyline_str}" fill="#93c5fd88" stroke="#1d4ed8" stroke-width="3" />
-      {''.join(vertex_circles)}
-      {''.join(labels)}
+    <svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Prévia dos polígonos">
+      {''.join(svg_parts)}
     </svg>
     """
     return svg
@@ -419,36 +527,54 @@ def to_kml_coords(points_utm: List[Tuple[float, float]]) -> List[Tuple[float, fl
     return coords_wgs84
 
 
-def generate_kml_bytes(protocolo: str, tipo: str, points_utm: List[Tuple[float, float]]) -> bytes:
-    polygon, _ = build_polygon(points_utm)
-    if not polygon.is_valid:
-        raise ValueError(f"Geometria inválida: {explain_validity(polygon)}")
-
-    closed_points, _ = ensure_closed(points_utm)
-    coords_wgs84 = to_kml_coords(closed_points)
-
+def generate_kml_bytes(
+    protocolo: str,
+    tipo: str,
+    polygons_utm: List[List[Tuple[float, float]]],
+    lotes_map: dict[int, str],
+) -> bytes:
     kml = simplekml.Kml()
-    name = f"{protocolo}_{tipo}"
-    pol = kml.newpolygon(name=name)
 
-    pol.outerboundaryis = coords_wgs84
-    pol.description = (
-        f"Protocolo: {protocolo}\n"
-        f"Tipo: {tipo}\n"
-        f"Gerado em: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-        f"Vertices: {len(points_utm)}\n"
-        f"SRC de entrada: SIRGAS 2000 / UTM 24S\n"
-        f"SRC de saída: WGS84 (KML)"
-    )
+    colors = [
+        simplekml.Color.red,
+        simplekml.Color.green,
+        simplekml.Color.blue,
+        simplekml.Color.purple,
+        simplekml.Color.orange,
+    ]
 
-    pol.style.linestyle.width = 3
-    pol.style.linestyle.color = simplekml.Color.red
-    pol.style.polystyle.color = simplekml.Color.changealphaint(80, simplekml.Color.red)
+    for idx, points_utm in enumerate(polygons_utm, start=1):
+        polygon, _ = build_polygon(points_utm)
+        if not polygon.is_valid:
+            raise ValueError(f"Geometria inválida no polígono {idx}: {explain_validity(polygon)}")
+
+        closed_points, _ = ensure_closed(points_utm)
+        coords_wgs84 = to_kml_coords(closed_points)
+
+        color = colors[(idx - 1) % len(colors)]
+        lote_nome = lotes_map.get(idx, f"Poligono_{idx}")
+
+        pol = kml.newpolygon(name=lote_nome)
+        pol.outerboundaryis = coords_wgs84
+        pol.description = (
+            f"Protocolo: {protocolo}\n"
+            f"Tipo: {tipo}\n"
+            f"Polígono: {idx}\n"
+            f"Lote: {lote_nome}\n"
+            f"Gerado em: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+            f"Vertices: {len(points_utm)}\n"
+            f"SRC de entrada: SIRGAS 2000 / UTM 24S\n"
+            f"SRC de saída: WGS84 (KML)"
+        )
+
+        pol.style.linestyle.width = 3
+        pol.style.linestyle.color = color
+        pol.style.polystyle.color = simplekml.Color.changealphaint(80, color)
 
     return kml.kml().encode("utf-8")
 
 
-def validate_input(protocolo: str, tipo: str, raw_points: str) -> Tuple[List[Tuple[float, float]], str | None]:
+def validate_input(protocolo: str, tipo: str, raw_points: str) -> Tuple[List[List[Tuple[float, float]]], str | None]:
     protocolo = protocolo.strip()
     tipo = tipo.strip()
 
@@ -458,15 +584,20 @@ def validate_input(protocolo: str, tipo: str, raw_points: str) -> Tuple[List[Tup
     if tipo not in {"lote", "edificacao"}:
         return [], "Tipo inválido."
 
-    points = parse_points(raw_points)
-    if len(points) < 3:
-        return [], "Informe pelo menos 3 pontos válidos."
+    polygons = parse_multiple_polygons(raw_points)
 
-    unique_points = set(points)
-    if len(unique_points) < 3:
-        return [], "Há poucos pontos distintos para formar um polígono."
+    if not polygons:
+        return [], "Informe pelo menos um conjunto de pontos válido."
 
-    return points, None
+    for i, points in enumerate(polygons, start=1):
+        if len(points) < 3:
+            return [], f"O polígono {i} precisa ter pelo menos 3 pontos válidos."
+
+        unique_points = set(points)
+        if len(unique_points) < 3:
+            return [], f"O polígono {i} tem poucos pontos distintos para formar uma geometria."
+
+    return polygons, None
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -476,8 +607,9 @@ def index():
     pontos = ""
     error = None
     success = None
-    polygon_info = None
+    polygon_info_list = None
     preview_svg = None
+    lotes_map: dict[int, str] = {}
 
     if request.method == "POST":
         protocolo = request.form.get("protocolo", "")
@@ -485,17 +617,24 @@ def index():
         pontos = request.form.get("pontos", "")
         action = request.form.get("action", "preview")
 
-        points, error = validate_input(protocolo, tipo, pontos)
+        polygons, error = validate_input(protocolo, tipo, pontos)
 
         if not error:
             if action == "invert":
-                points = list(reversed(points))
-                pontos = points_to_text(points)
-                success = "Ordem dos pontos invertida."
+                polygons = [list(reversed(p)) for p in polygons]
+                pontos = multiple_polygons_to_text(polygons)
+                success = "Ordem dos pontos invertida em todos os polígonos."
 
-            polygon, closed_automatically = build_polygon(points)
-            polygon_info = make_polygon_info(polygon, points, closed_automatically)
-            preview_svg = polygon_to_svg(points)
+            lotes_map = extract_lotes_from_form(request.form, len(polygons))
+
+            polygon_info_list = []
+            for idx, points in enumerate(polygons, start=1):
+                polygon, closed_automatically = build_polygon(points)
+                polygon_info_list.append(
+                    make_polygon_info(idx, polygon, points, closed_automatically)
+                )
+
+            preview_svg = polygons_to_svg(polygons, lotes_map)
 
     return render_template_string(
         HTML,
@@ -504,8 +643,9 @@ def index():
         pontos=pontos,
         error=error,
         success=success,
-        polygon_info=polygon_info,
+        polygon_info_list=polygon_info_list,
         preview_svg=preview_svg,
+        lotes_map=lotes_map,
     )
 
 
@@ -515,19 +655,21 @@ def download_kml():
     tipo = request.form.get("tipo", "lote")
     pontos = request.form.get("pontos", "")
 
-    points, error = validate_input(protocolo, tipo, pontos)
+    polygons, error = validate_input(protocolo, tipo, pontos)
     if error:
         return Response(error, status=400, mimetype="text/plain; charset=utf-8")
 
-    polygon, _ = build_polygon(points)
-    if not polygon.is_valid:
-        return Response(
-            f"Geometria inválida: {explain_validity(polygon)}",
-            status=400,
-            mimetype="text/plain; charset=utf-8",
-        )
+    for idx, points in enumerate(polygons, start=1):
+        polygon, _ = build_polygon(points)
+        if not polygon.is_valid:
+            return Response(
+                f"Geometria inválida no polígono {idx}: {explain_validity(polygon)}",
+                status=400,
+                mimetype="text/plain; charset=utf-8",
+            )
 
-    kml_bytes = generate_kml_bytes(protocolo, tipo, points)
+    lotes_map = extract_lotes_from_form(request.form, len(polygons))
+    kml_bytes = generate_kml_bytes(protocolo, tipo, polygons, lotes_map)
     filename = f"{sanitize_filename(protocolo)}_{tipo}.kml"
 
     return Response(
