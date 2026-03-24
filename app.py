@@ -38,26 +38,32 @@ HTML = """
       --success: #166534;
       --accent: #1d4ed8;
     }
+
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
       font-family: Arial, Helvetica, sans-serif;
       background: var(--bg);
       color: var(--text);
     }
+
     .container {
-      max-width: 1200px;
+      max-width: 1280px;
       margin: 24px auto;
       padding: 0 16px;
     }
+
     .title {
       margin-bottom: 16px;
     }
+
     .grid {
       display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
+      grid-template-columns: 1.15fr 0.85fr;
       gap: 16px;
     }
+
     .card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -65,11 +71,13 @@ HTML = """
       padding: 16px;
       box-shadow: 0 1px 4px rgba(0,0,0,0.04);
     }
+
     label {
       display: block;
       font-weight: 600;
       margin: 12px 0 6px;
     }
+
     input[type="text"], textarea, select {
       width: 100%;
       border: 1px solid var(--border);
@@ -78,23 +86,33 @@ HTML = """
       font-size: 14px;
       background: #fff;
     }
+
     textarea {
       min-height: 320px;
       resize: vertical;
       font-family: Consolas, Monaco, monospace;
       line-height: 1.45;
     }
+
+    .desc-textarea {
+      min-height: 90px;
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.4;
+    }
+
     .row {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
     }
+
     .actions {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
       margin-top: 16px;
     }
+
     button {
       border: 0;
       border-radius: 8px;
@@ -102,36 +120,43 @@ HTML = """
       font-weight: 700;
       cursor: pointer;
     }
+
     .primary {
       background: var(--accent);
       color: white;
     }
+
     .secondary {
       background: #e5e7eb;
       color: #111827;
     }
+
     .msg {
       border-radius: 8px;
       padding: 12px;
       margin-bottom: 12px;
       font-size: 14px;
     }
+
     .msg.error {
       background: #fee2e2;
       color: var(--danger);
       border: 1px solid #fecaca;
     }
+
     .msg.success {
       background: #dcfce7;
       color: var(--success);
       border: 1px solid #bbf7d0;
     }
+
     .meta {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
       margin-top: 12px;
     }
+
     .meta div {
       background: #f9fafb;
       border: 1px solid var(--border);
@@ -139,10 +164,12 @@ HTML = """
       padding: 10px;
       font-size: 14px;
     }
+
     .muted {
       color: var(--muted);
       font-size: 13px;
     }
+
     .preview-box {
       border: 1px solid var(--border);
       border-radius: 12px;
@@ -154,6 +181,7 @@ HTML = """
       justify-content: center;
       overflow: auto;
     }
+
     .pill {
       display: inline-block;
       border-radius: 999px;
@@ -163,12 +191,15 @@ HTML = """
       background: #eef2ff;
       color: #3730a3;
       margin-top: 6px;
+      margin-right: 6px;
     }
+
     .footer-note {
       margin-top: 10px;
       font-size: 12px;
       color: var(--muted);
     }
+
     .lot-box {
       margin-top: 16px;
       padding: 12px;
@@ -176,12 +207,61 @@ HTML = """
       border-radius: 10px;
       background: #f8fafc;
     }
+
     .lot-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
       gap: 12px;
       margin-top: 10px;
     }
+
+    .poly-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #fff;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .poly-card summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 14px 16px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border);
+      font-weight: 700;
+    }
+
+    .poly-card[open] summary {
+      background: #eef2ff;
+    }
+
+    .poly-card summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .poly-card > div {
+      padding: 14px;
+    }
+
+    .details-box {
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fafafa;
+      padding: 8px 10px;
+    }
+
+    details summary {
+      user-select: none;
+    }
+
+    .summary-note {
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
     @media (max-width: 900px) {
       .grid, .row, .meta, .lot-grid {
         grid-template-columns: 1fr;
@@ -209,9 +289,16 @@ HTML = """
         <form method="post" action="/">
           <div class="row">
             <div>
-              <label for="protocolo">Protocolo</label>
-              <input type="text" id="protocolo" name="protocolo" value="{{ protocolo }}" placeholder="Ex.: 2025-00123" required>
+              <label for="inscricao">Inscrição</label>
+              <input type="text" id="inscricao" name="inscricao" value="{{ inscricao }}" placeholder="Ex.: 2025-00123" required>
             </div>
+            <div>
+              <label for="operador">Operador</label>
+              <input type="text" id="operador" name="operador" value="{{ operador }}" placeholder="Ex.: Rafael Aragão">
+            </div>
+          </div>
+
+          <div class="row">
             <div>
               <label for="tipo">Tipo</label>
               <select id="tipo" name="tipo">
@@ -219,6 +306,7 @@ HTML = """
                 <option value="edificacao" {% if tipo == 'edificacao' %}selected{% endif %}>Edificação</option>
               </select>
             </div>
+            <div></div>
           </div>
 
           <label for="pontos">Pontos</label>
@@ -238,20 +326,57 @@ Ponto 3: 645406.2611085888, 8792441.664829656">{{ pontos }}</textarea>
           {% if polygon_info_list %}
             <div class="lot-box">
               <strong>Identificação dos polígonos</strong>
-              <div class="muted">Informe o número do lote para cada polígono detectado.</div>
+              <div class="muted">Informe nome do polígono e, se quiser, uma descrição para cada polígono detectado.</div>
 
               <div class="lot-grid">
                 {% for polygon_info in polygon_info_list %}
-                  <div>
-                    <label for="lote_{{ polygon_info.index }}">Polígono {{ polygon_info.index }}</label>
-                    <input
-                      type="text"
-                      id="lote_{{ polygon_info.index }}"
-                      name="lote_{{ polygon_info.index }}"
-                      value="{{ lotes_map.get(polygon_info.index, '') }}"
-                      placeholder="Ex.: Lote 59"
-                    >
-                  </div>
+                  <details class="poly-card" {% if loop.first %}open{% endif %}>
+                    <summary>
+                      <strong>{{ lotes_map.get(polygon_info.index, "Polígono " ~ polygon_info.index) }}</strong>
+                      <span class="muted"> — Área: {{ polygon_info.area_m2 }} m²</span>
+                    </summary>
+
+                    <div>
+                      <div class="row">
+                        <div>
+                          <label for="lote_{{ polygon_info.index }}">Nome do polígono</label>
+                          <input
+                            type="text"
+                            id="lote_{{ polygon_info.index }}"
+                            name="lote_{{ polygon_info.index }}"
+                            value="{{ lotes_map.get(polygon_info.index, '') }}"
+                            placeholder="Ex.: Lote 59"
+                          >
+                        </div>
+                        <div>
+                          <label>Área</label>
+                          <input type="text" value="{{ polygon_info.area_m2 }} m²" readonly>
+                        </div>
+                      </div>
+
+                      <label for="descricao_{{ polygon_info.index }}">Descrição</label>
+                      <textarea
+                        id="descricao_{{ polygon_info.index }}"
+                        name="descricao_{{ polygon_info.index }}"
+                        class="desc-textarea"
+                        placeholder="Descrição opcional do polígono..."
+                      >{{ descricoes_map.get(polygon_info.index, '') }}</textarea>
+
+                      <div class="details-box">
+                        <details>
+                          <summary>Ver metadados técnicos</summary>
+                          <div class="summary-note">Esses dados continuam disponíveis e também seguem nos metadados.</div>
+                          <div class="meta">
+                            <div><strong>Vértices:</strong><br>{{ polygon_info.vertex_count }}</div>
+                            <div><strong>Fechado automaticamente:</strong><br>{{ "Sim" if polygon_info.closed_automatically else "Não" }}</div>
+                            <div><strong>Perímetro:</strong><br>{{ polygon_info.perimeter_m }} m</div>
+                            <div><strong>Válido:</strong><br>{{ "Sim" if polygon_info.is_valid else "Não" }}</div>
+                            <div style="grid-column: 1 / -1;"><strong>Detalhe técnico:</strong><br>{{ polygon_info.validity_message }}</div>
+                          </div>
+                        </details>
+                      </div>
+                    </div>
+                  </details>
                 {% endfor %}
               </div>
             </div>
@@ -264,30 +389,20 @@ Ponto 3: 645406.2611085888, 8792441.664829656">{{ pontos }}</textarea>
         </form>
 
         {% if polygon_info_list %}
-          {% for polygon_info in polygon_info_list %}
-            <div class="meta" style="margin-bottom: 12px;">
-              <div><strong>Polígono:</strong><br>{{ polygon_info.index }}</div>
-              <div><strong>Vértices:</strong><br>{{ polygon_info.vertex_count }}</div>
-              <div><strong>Fechado automaticamente:</strong><br>{{ "Sim" if polygon_info.closed_automatically else "Não" }}</div>
-              <div><strong>Área:</strong><br>{{ polygon_info.area_m2 }} m²</div>
-              <div><strong>Perímetro:</strong><br>{{ polygon_info.perimeter_m }} m</div>
-              <div><strong>Válido:</strong><br>{{ "Sim" if polygon_info.is_valid else "Não" }}</div>
-              <div style="grid-column: 1 / -1;"><strong>Detalhe:</strong><br>{{ polygon_info.validity_message }}</div>
-            </div>
-          {% endfor %}
-
           <div class="pill">{{ polygon_info_list|length }} polígono(s) detectado(s)</div>
           <div class="pill">UTM 24S → WGS84 na exportação KML</div>
 
           {% set all_valid = polygon_info_list | selectattr('is_valid') | list | length == polygon_info_list | length %}
           {% if all_valid %}
             <form method="post" action="/download-kml">
-              <input type="hidden" name="protocolo" value="{{ protocolo }}">
+              <input type="hidden" name="inscricao" value="{{ inscricao }}">
+              <input type="hidden" name="operador" value="{{ operador }}">
               <input type="hidden" name="tipo" value="{{ tipo }}">
               <input type="hidden" name="pontos" value="{{ pontos }}">
 
               {% for polygon_info in polygon_info_list %}
                 <input type="hidden" name="lote_{{ polygon_info.index }}" value="{{ lotes_map.get(polygon_info.index, '') }}">
+                <input type="hidden" name="descricao_{{ polygon_info.index }}" value="{{ descricoes_map.get(polygon_info.index, '') }}">
               {% endfor %}
 
               <div class="actions">
@@ -388,6 +503,17 @@ def extract_lotes_from_form(form, polygon_count: int) -> dict[int, str]:
             lotes_map[idx] = value
 
     return lotes_map
+
+
+def extract_descricoes_from_form(form, polygon_count: int) -> dict[int, str]:
+    descricoes_map: dict[int, str] = {}
+
+    for idx in range(1, polygon_count + 1):
+        value = form.get(f"descricao_{idx}", "").strip()
+        if value:
+            descricoes_map[idx] = value
+
+    return descricoes_map
 
 
 def ensure_closed(points: List[Tuple[float, float]]) -> Tuple[List[Tuple[float, float]], bool]:
@@ -500,7 +626,6 @@ def polygons_to_svg(
                 f'<text x="{x + 8:.2f}" y="{y - 8:.2f}" font-size="14" fill="#111827" font-weight="700">{poly_idx}.{idx}</text>'
             )
 
-        # Rótulo do lote no centro aproximado do polígono
         poly_geom, _ = build_polygon(polygon)
         centroid = poly_geom.centroid
         cx, cy = project((centroid.x, centroid.y))
@@ -528,10 +653,12 @@ def to_kml_coords(points_utm: List[Tuple[float, float]]) -> List[Tuple[float, fl
 
 
 def generate_kml_bytes(
-    protocolo: str,
+    inscricao: str,
+    operador: str,
     tipo: str,
     polygons_utm: List[List[Tuple[float, float]]],
     lotes_map: dict[int, str],
+    descricoes_map: dict[int, str],
 ) -> bytes:
     kml = simplekml.Kml()
 
@@ -544,7 +671,7 @@ def generate_kml_bytes(
     ]
 
     for idx, points_utm in enumerate(polygons_utm, start=1):
-        polygon, _ = build_polygon(points_utm)
+        polygon, closed_automatically = build_polygon(points_utm)
         if not polygon.is_valid:
             raise ValueError(f"Geometria inválida no polígono {idx}: {explain_validity(polygon)}")
 
@@ -552,34 +679,54 @@ def generate_kml_bytes(
         coords_wgs84 = to_kml_coords(closed_points)
 
         color = colors[(idx - 1) % len(colors)]
-        lote_nome = lotes_map.get(idx, f"Poligono_{idx}")
+        nome_poligono = lotes_map.get(idx, f"Poligono_{idx}")
+        descricao = descricoes_map.get(idx, "")
+        area_m2 = format_number(polygon.area)
+        perimetro_m = format_number(polygon.length)
+        validade = "Válido" if polygon.is_valid else "Inválido"
+        detalhe_tecnico = explain_validity(polygon) if not polygon.is_valid else "Geometria válida"
 
-        pol = kml.newpolygon(name=lote_nome)
+        pol = kml.newpolygon(name=nome_poligono)
         pol.outerboundaryis = coords_wgs84
-        pol.description = (
-            f"Protocolo: {protocolo}\n"
-            f"Tipo: {tipo}\n"
-            f"Polígono: {idx}\n"
-            f"Lote: {lote_nome}\n"
-            f"Gerado em: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-            f"Vertices: {len(points_utm)}\n"
-            f"SRC de entrada: SIRGAS 2000 / UTM 24S\n"
-            f"SRC de saída: WGS84 (KML)"
-        )
+
+        # Pode deixar vazio ou curto
+        pol.description = descricao or ""
 
         pol.style.linestyle.width = 3
         pol.style.linestyle.color = color
         pol.style.polystyle.color = simplekml.Color.changealphaint(80, color)
 
+        # Campos separados
+        pol.extendeddata.newdata(name="inscricao", value=inscricao)
+        pol.extendeddata.newdata(name="operador", value=operador or "")
+        pol.extendeddata.newdata(name="tipo", value=tipo)
+        pol.extendeddata.newdata(name="poligono", value=str(idx))
+        pol.extendeddata.newdata(name="nome", value=nome_poligono)
+        pol.extendeddata.newdata(name="descricao", value=descricao or "")
+        pol.extendeddata.newdata(
+            name="gerado_em",
+            value=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        )
+        pol.extendeddata.newdata(name="area_m2", value=area_m2)
+        pol.extendeddata.newdata(name="perimetro_m", value=perimetro_m)
+        pol.extendeddata.newdata(name="vertices", value=str(len(points_utm)))
+        pol.extendeddata.newdata(
+            name="fechado_automaticamente",
+            value="Sim" if closed_automatically else "Não",
+        )
+        pol.extendeddata.newdata(name="validade", value=validade)
+        pol.extendeddata.newdata(name="detalhe_tecnico", value=detalhe_tecnico)
+        pol.extendeddata.newdata(name="src_entrada", value="SIRGAS 2000 / UTM 24S")
+        pol.extendeddata.newdata(name="src_saida", value="WGS84 (KML)")
+
     return kml.kml().encode("utf-8")
 
-
-def validate_input(protocolo: str, tipo: str, raw_points: str) -> Tuple[List[List[Tuple[float, float]]], str | None]:
-    protocolo = protocolo.strip()
+def validate_input(inscricao: str, tipo: str, raw_points: str) -> Tuple[List[List[Tuple[float, float]]], str | None]:
+    inscricao = inscricao.strip()
     tipo = tipo.strip()
 
-    if not protocolo:
-        return [], "Informe o protocolo."
+    if not inscricao:
+        return [], "Informe a inscrição."
 
     if tipo not in {"lote", "edificacao"}:
         return [], "Tipo inválido."
@@ -602,7 +749,8 @@ def validate_input(protocolo: str, tipo: str, raw_points: str) -> Tuple[List[Lis
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    protocolo = ""
+    inscricao = ""
+    operador = ""
     tipo = "lote"
     pontos = ""
     error = None
@@ -610,14 +758,16 @@ def index():
     polygon_info_list = None
     preview_svg = None
     lotes_map: dict[int, str] = {}
+    descricoes_map: dict[int, str] = {}
 
     if request.method == "POST":
-        protocolo = request.form.get("protocolo", "")
+        inscricao = request.form.get("inscricao", "")
+        operador = request.form.get("operador", "")
         tipo = request.form.get("tipo", "lote")
         pontos = request.form.get("pontos", "")
         action = request.form.get("action", "preview")
 
-        polygons, error = validate_input(protocolo, tipo, pontos)
+        polygons, error = validate_input(inscricao, tipo, pontos)
 
         if not error:
             if action == "invert":
@@ -626,6 +776,7 @@ def index():
                 success = "Ordem dos pontos invertida em todos os polígonos."
 
             lotes_map = extract_lotes_from_form(request.form, len(polygons))
+            descricoes_map = extract_descricoes_from_form(request.form, len(polygons))
 
             polygon_info_list = []
             for idx, points in enumerate(polygons, start=1):
@@ -638,7 +789,8 @@ def index():
 
     return render_template_string(
         HTML,
-        protocolo=protocolo,
+        inscricao=inscricao,
+        operador=operador,
         tipo=tipo,
         pontos=pontos,
         error=error,
@@ -646,16 +798,18 @@ def index():
         polygon_info_list=polygon_info_list,
         preview_svg=preview_svg,
         lotes_map=lotes_map,
+        descricoes_map=descricoes_map,
     )
 
 
 @app.route("/download-kml", methods=["POST"])
 def download_kml():
-    protocolo = request.form.get("protocolo", "")
+    inscricao = request.form.get("inscricao", "")
+    operador = request.form.get("operador", "")
     tipo = request.form.get("tipo", "lote")
     pontos = request.form.get("pontos", "")
 
-    polygons, error = validate_input(protocolo, tipo, pontos)
+    polygons, error = validate_input(inscricao, tipo, pontos)
     if error:
         return Response(error, status=400, mimetype="text/plain; charset=utf-8")
 
@@ -669,8 +823,19 @@ def download_kml():
             )
 
     lotes_map = extract_lotes_from_form(request.form, len(polygons))
-    kml_bytes = generate_kml_bytes(protocolo, tipo, polygons, lotes_map)
-    filename = f"{sanitize_filename(protocolo)}_{tipo}.kml"
+    descricoes_map = extract_descricoes_from_form(request.form, len(polygons))
+
+    kml_bytes = generate_kml_bytes(
+        inscricao=inscricao,
+        operador=operador,
+        tipo=tipo,
+        polygons_utm=polygons,
+        lotes_map=lotes_map,
+        descricoes_map=descricoes_map,
+    )
+
+    operador_safe = sanitize_filename(operador) if operador.strip() else "SEM_OPERADOR"
+    filename = f"{sanitize_filename(inscricao)}_{operador_safe}.kml"
 
     return Response(
         kml_bytes,
